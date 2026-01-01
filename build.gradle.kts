@@ -1,187 +1,112 @@
-import org.apache.tools.ant.taskdefs.condition.Os
-import org.jetbrains.kotlin.gradle.plugin.mpp.AbstractKotlinNativeTargetPreset
-import java.net.URI
+@file:OptIn(ExperimentalWasmDsl::class)
+
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("multiplatform")
-
-    id("maven-publish")
-    id("signing")
+    `maven-publish`
+    signing
 }
+
+group = "com.github.h0tk3y.better-parse"
+// Version is managed by buildSrc/settings.gradle.kts
 
 kotlin {
-    explicitApi()
-
-    sourceSets {
-        all {
-            languageSettings.optIn("kotlin.ExperimentalMultiplatform")
-        }
-
-        commonTest {
-            dependencies {
-                implementation(kotlin("test-common"))
-                implementation(kotlin("test-annotations-common"))
-            }
-        }
-
-        create("nativeMain") {
-            dependsOn(commonMain.get())
-        }
-    }
-
     jvm {
-        compilations["test"].defaultSourceSet.dependencies {
-            implementation(kotlin("test-junit"))
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_1_8)
         }
-        compilations.all {
-            kotlinOptions.jvmTarget = "1.6"
+        testRuns["test"].executionTask.configure {
+            useJUnit()
         }
     }
 
-    js(BOTH) {
+    js {
         browser()
         nodejs()
-
-        compilations["test"].defaultSourceSet.dependencies {
-            implementation(kotlin("test-js"))
-        }
-        compilations.all {
-            kotlinOptions.moduleKind = "umd"
-        }
     }
 
-    presets.withType<AbstractKotlinNativeTargetPreset<*>>().forEach {
-        targetFromPreset(it) {
-            compilations.getByName("main") {
-                defaultSourceSet.dependsOn(sourceSets["nativeMain"])
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+        nodejs()
+    }
+
+    linuxX64()
+    macosX64()
+    macosArm64()
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+    mingwX64()
+
+    sourceSets {
+        val commonMain by getting
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
             }
         }
+
+        // Shared Native Scope
+        val nativeMain by creating {
+            dependsOn(commonMain)
+        }
+
+        // Link all native targets to 'nativeMain'
+        targets.withType<org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget> {
+            compilations["main"].defaultSourceSet.dependsOn(nativeMain)
+        }
+
+        // JS
+        val jsMain by getting {
+            dependsOn(commonMain)
+        }
+        val jsTest by getting {
+            dependsOn(commonTest)
+        }
+
+        // Wasm
+        val wasmJsMain by getting {
+            dependsOn(commonMain)
+        }
+        val wasmJsTest by getting {
+            dependsOn(commonTest)
+        }
     }
 }
 
-//region Code generation
 
-val codegen by tasks.registering {
-    val maxTupleSize = 16
-
-    andCodegen(
-        maxTupleSize,
-        kotlin.sourceSets.commonMain.get().kotlin.srcDirs.first().absolutePath + "/generated/andFunctions.kt"
-    )
-    tupleCodegen(
-        maxTupleSize,
-        kotlin.sourceSets.commonMain.get().kotlin.srcDirs.first().absolutePath + "/generated/tuples.kt"
-    )
-}
-
-kotlin.sourceSets.commonMain {
-    kotlin.srcDirs(files().builtBy(codegen))
-}
-
-//endregion
-
-//region Publication
-
-val publicationsFromWindows = listOf("mingwX64", "mingwX86")
-
-val publicationsFromMacos =
-    kotlin.targets.names.filter {
-        it.startsWith("macos") || it.startsWith("ios") || it.startsWith("watchos") || it.startsWith("tvos")
-    }
-
-val publicationsFromLinux = publishing.publications.names - publicationsFromWindows - publicationsFromMacos
-
-val publicationsFromThisPlatform = when {
-    Os.isFamily(Os.FAMILY_WINDOWS) -> publicationsFromWindows
-    Os.isFamily(Os.FAMILY_MAC) -> publicationsFromMacos
-    Os.isFamily(Os.FAMILY_UNIX) -> publicationsFromLinux
-    else -> error("Expected Windows, Mac, or Linux host")
-}
-
-tasks.withType(AbstractPublishToMaven::class).all {
-    onlyIf { publication.name in publicationsFromThisPlatform }
+val javadocJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("javadoc")
 }
 
 publishing {
-    repositories {
-        maven {
-            name = "central"
-            val sonatypeUsername = "h0tk3y"
-            url = URI("https://oss.sonatype.org/service/local/staging/deploy/maven2")
-
-            credentials {
-                username = sonatypeUsername
-                password = findProperty("sonatypePassword") as? String
-            }
-        }
-    }
-}
-
-// Add a Javadoc JAR to each publication as required by Maven Central:
-
-val javadocJar by tasks.creating(Jar::class) {
-    archiveClassifier.value("javadoc")
-    // TODO: instead of a single empty Javadoc JAR, generate real documentation for each module
-}
-
-publishing {
-    publications.withType<MavenPublication>().all {
+    publications.withType<MavenPublication> {
         artifact(javadocJar)
-    }
-}
 
-fun customizeForMavenCentral(pom: org.gradle.api.publish.maven.MavenPom) = pom.withXml {
-    fun groovy.util.Node.add(key: String, value: String) {
-        appendNode(key).setValue(value)
-    }
+        pom {
+            name.set("better-parse")
+            description.set("A nice parser combinator library for Kotlin")
+            url.set("https://github.com/h0tk3y/better-parse")
 
-    fun groovy.util.Node.node(key: String, content: groovy.util.Node.() -> Unit) {
-        appendNode(key).also(content)
-    }
-
-    asNode().run {
-        add("name", "better-parse")
-        add(
-            "description",
-            "A library that provides a set of parser combinator tools for building parsers and translators in Kotlin."
-        )
-        add("url", "https://github.com/h0tk3y/better-parse")
-        node("organization") {
-            add("name", "com.github.h0tk3y")
-            add("url", "https://github.com/h0tk3y")
-        }
-        node("issueManagement") {
-            add("system", "github")
-            add("url", "https://github.com/h0tk3y/better-parse/issues")
-        }
-        node("licenses") {
-            node("license") {
-                add("name", "Apache License 2.0")
-                add("url", "https://raw.githubusercontent.com/h0tk3y/better-parse/master/LICENSE")
-                add("distribution", "repo")
+            licenses {
+                license {
+                    name.set("Apache-2.0")
+                    url.set("https://www.apache.org/licenses/LICENSE-2.0")
+                }
             }
-        }
-        node("scm") {
-            add("url", "https://github.com/h0tk3y/better-parse")
-            add("connection", "scm:git:git://github.com/h0tk3y/better-parse")
-            add("developerConnection", "scm:git:ssh://github.com/h0tk3y/better-parse.git")
-        }
-        node("developers") {
-            node("developer") {
-                add("name", "h0tk3y")
+            developers {
+                developer {
+                    id.set("h0tk3y")
+                    name.set("Dmitry Kichinsky")
+                }
+            }
+            scm {
+                url.set("https://github.com/h0tk3y/better-parse")
+                connection.set("scm:git:https://github.com/h0tk3y/better-parse.git")
             }
         }
     }
 }
-
-publishing {
-    publications.withType<MavenPublication>().all {
-        customizeForMavenCentral(pom)
-
-        // Signing requires that
-        // `signing.keyId`, `signing.password`, and `signing.secretKeyRingFile` are provided as Gradle properties
-        signing.sign(this@all)
-    }
-}
-
-//endregion
