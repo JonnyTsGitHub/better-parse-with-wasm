@@ -1,9 +1,15 @@
 plugins {
     // TODO: setup the version in the same way as in the root project once IJ fixes importing of buildSrc
-    kotlin("jvm").version("1.9.22")
+    kotlin("jvm").version("2.2.21")
 }
 
 repositories {
     // TODO: unify repository setup with the root project once IJ fixes importing of buildSrc
     mavenCentral()
+}
+
+kotlin {
+    jvmToolchain {
+        languageVersion.set(JavaLanguageVersion.of(23))
+    }
 }
