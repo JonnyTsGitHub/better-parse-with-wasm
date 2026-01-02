@@ -32,4 +32,3 @@ pluginManagement {
 
 rootProject.name = "better-parse"
 
-include(":better-parse")
