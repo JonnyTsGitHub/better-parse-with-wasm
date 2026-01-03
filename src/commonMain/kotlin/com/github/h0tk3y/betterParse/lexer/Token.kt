@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMultiplatform::class)
+
 package com.github.h0tk3y.betterParse.lexer
 
 import com.github.h0tk3y.betterParse.parser.*
