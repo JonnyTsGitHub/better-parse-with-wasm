@@ -9,6 +9,10 @@ kotlin {
     linuxX64("linux")
     mingwX64("windows")
 
+    targets.withType<KotlinNativeTarget>().all {
+        binaries.executable { }
+    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -20,10 +24,9 @@ kotlin {
             dependsOn(commonMain)
         }
 
-        kotlin.targets.withType<KotlinNativeTarget>().all {
+        targets.withType<KotlinNativeTarget>().all {
             compilations.getByName("main") {
                 defaultSourceSet.dependsOn(nativeMain)
-                binaries.executable { }
             }
         }
     }
