@@ -36,7 +36,7 @@ public actual class RegexToken : Token {
         override fun toString(): String = error("unsupported operation")
     }
 
-    override fun match(input: CharSequence, fromIndex: Int): Int {
+    actual override fun match(input: CharSequence, fromIndex: Int): Int {
         val relativeInput = RelativeInput(fromIndex, input)
 
         return regex.find(relativeInput)?.range?.let {

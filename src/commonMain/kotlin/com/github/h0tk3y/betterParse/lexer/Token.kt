@@ -1,10 +1,7 @@
-@file:OptIn(ExperimentalMultiplatform::class)
-
 package com.github.h0tk3y.betterParse.lexer
 
 import com.github.h0tk3y.betterParse.parser.*
 
-@OptionalExpectation
 public expect annotation class Language(val value: String, val prefix: String, val suffix: String)
 
 /**
