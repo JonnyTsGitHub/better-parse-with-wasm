@@ -15,7 +15,7 @@ group = "com.github.h0tk3y.better-parse"
 kotlin {
     jvm {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_23)
+            jvmTarget.set(JvmTarget.JVM_21)
         }
         testRuns["test"].executionTask.configure {
             useJUnit()
@@ -77,6 +77,18 @@ kotlin {
     }
 }
 
+// Don't include test binaries in a composite build
+val isCompositeBuild: Boolean = gradle.parent != null
+if (isCompositeBuild) {
+    // Disable all Kotlin/Native test binaries tasks (e.g. iosSimulatorArm64TestBinaries)
+    // but keep main binaries available for consuming builds.
+    tasks.configureEach {
+        val n = name
+        if (n.endsWith("TestBinaries") || n.contains("Test", ignoreCase = false) && n.contains("Binaries")) {
+            enabled = false
+        }
+    }
+}
 
 val javadocJar by tasks.registering(Jar::class) {
     archiveClassifier.set("javadoc")

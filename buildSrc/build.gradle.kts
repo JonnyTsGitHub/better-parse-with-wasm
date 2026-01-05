@@ -7,9 +7,3 @@ repositories {
     // TODO: unify repository setup with the root project once IJ fixes importing of buildSrc
     mavenCentral()
 }
-
-kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(23))
-    }
-}

@@ -32,5 +32,8 @@ pluginManagement {
 
 rootProject.name = "better-parse"
 
-include(":benchmarks", ":demo:demo-jvm", ":demo:demo-js", ":demo:demo-native")
-
+// Don't include demos and benchmarks in a composite build
+val isCompositeBuild: Boolean = gradle.parent != null
+if (!isCompositeBuild) {
+    include(":benchmarks", ":demo:demo-jvm", ":demo:demo-js", ":demo:demo-native")
+}

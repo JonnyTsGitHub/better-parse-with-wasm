@@ -24,7 +24,7 @@ kotlin {
 
     jvm {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_23)
+            jvmTarget.set(JvmTarget.JVM_21)
         }
 
         compilations["test"].defaultSourceSet.dependencies {
