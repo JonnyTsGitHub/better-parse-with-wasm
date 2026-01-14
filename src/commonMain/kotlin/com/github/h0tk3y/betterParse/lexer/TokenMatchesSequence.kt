@@ -10,7 +10,7 @@ public class TokenMatchesSequence(
     private val matches: ArrayList<TokenMatch> = arrayListOf()
 ) : Sequence<TokenMatch> {
 
-    private inline fun ensureReadPosition(position: Int): Boolean {
+    private fun ensureReadPosition(position: Int): Boolean {
         while (position >= matches.size) {
             val next = tokenProducer.nextToken()
                 ?: return false

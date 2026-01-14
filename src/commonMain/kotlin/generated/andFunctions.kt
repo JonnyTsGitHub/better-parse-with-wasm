@@ -1,5 +1,4 @@
 @file:Suppress(
-    "NO_EXPLICIT_RETURN_TYPE_IN_API_MODE", // fixme: bug in Kotlin 1.4.21, fixed in 1.4.30
     "MoveLambdaOutsideParentheses", 
     "PackageDirectoryMismatch"
 )
